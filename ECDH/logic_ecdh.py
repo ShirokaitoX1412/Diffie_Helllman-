@@ -1,11 +1,10 @@
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization, hashes
 
-# --- PHẦN 1: ECDH (Trao đổi khóa) ---
+# --- ECDH: Trao đổi khóa ---
 def generate_ecdh_keys():
     priv_key = ec.generate_private_key(ec.SECP256R1())
-    pub_key = priv_key.public_key()
-    pub_bytes = pub_key.public_bytes(
+    pub_bytes = priv_key.public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
@@ -15,7 +14,7 @@ def calculate_shared_secret(private_key, peer_public_bytes):
     peer_public_key = serialization.load_pem_public_key(peer_public_bytes)
     return private_key.exchange(ec.ECDH(), peer_public_key)
 
-# --- PHẦN 2: ECDSA (Chữ ký số - Cửa chặn MITM) ---
+# --- ECDSA: Chữ ký số ---
 def generate_signing_keys():
     priv_signing = ec.generate_private_key(ec.SECP256R1())
     pub_verify_bytes = priv_signing.public_key().public_bytes(
@@ -35,6 +34,12 @@ def verify_signature(public_verify_bytes, signature, data_bytes):
     except:
         return False
 
-def xor_cipher_bytes(text, key_bytes):
-    result = "".join(chr(ord(text[i]) ^ key_bytes[i % len(key_bytes)]) for i in range(len(text)))
-    return result.encode('latin1')
+# --- MẬT MÃ: XOR Cipher cho Bytes ---
+def xor_cipher(data, key_bytes):
+    """
+    Dùng cho cả mã hóa và giải mã. 
+    'data' có thể là chuỗi (string) hoặc bytes.
+    """
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return bytes([data[i] ^ key_bytes[i % 32] for i in range(len(data))])
